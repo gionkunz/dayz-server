@@ -61,6 +61,14 @@ export class SteamCMDInstaller {
   }
 
   /**
+   * Escape a string for shell usage
+   */
+  private shellEscape(str: string): string {
+    // Wrap in single quotes and escape any single quotes within
+    return `'${str.replace(/'/g, "'\\''")}'`;
+  }
+
+  /**
    * Build login command based on credentials
    */
   private buildLoginCommand(credentials: SteamCredentials): string {
@@ -68,14 +76,19 @@ export class SteamCMDInstaller {
       return '+login anonymous';
     }
 
-    let loginCmd = `+login ${credentials.username}`;
+    // Escape username and password for shell safety
+    const username = this.shellEscape(credentials.username);
+    let loginCmd = `+login ${username}`;
     
     if (credentials.password) {
-      loginCmd += ` ${credentials.password}`;
+      const password = this.shellEscape(credentials.password);
+      loginCmd += ` ${password}`;
     }
 
     if (credentials.steamGuardCode) {
-      loginCmd += ` ${credentials.steamGuardCode}`;
+      // Steam guard codes are alphanumeric, but escape anyway for safety
+      const code = this.shellEscape(credentials.steamGuardCode);
+      loginCmd += ` ${code}`;
     }
 
     return loginCmd;
@@ -86,6 +99,7 @@ export class SteamCMDInstaller {
    */
   async installServer(credentials: SteamCredentials): Promise<InstallResult> {
     console.log('🎮 Installing/Updating DayZ Server...');
+    console.log(`   Steam login: ${credentials.username || 'anonymous'}`);
 
     if (!this.isSteamCMDInstalled()) {
       return { success: false, message: 'SteamCMD is not installed. Run install-steamcmd first.' };

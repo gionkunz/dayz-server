@@ -69,7 +69,7 @@ program
           serverSide: false,
         },
         {
-          workshopId: '1708571776',
+          workshopId: '1828439124',
           name: '@VPPAdminTools',
           clientRequired: true,
           serverSide: false,

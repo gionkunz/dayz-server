@@ -50,17 +50,18 @@ Set Steam credentials in your `.env` file:
 
 ```bash
 STEAM_USERNAME=your_steam_username
-STEAM_PASSWORD=your_steam_password
+# If password contains special chars ($ ! ^ &), use single quotes:
+STEAM_PASSWORD='your_steam_password'
 ```
 
 ### 3. Build and Run
 
 ```bash
 # Build the Docker image
-docker-compose build
+docker compose build
 
 # Start the server
-docker-compose up -d
+docker compose up -d
 ```
 
 ### 4. Steam Guard Authentication
@@ -75,8 +76,8 @@ If using a Steam account with Steam Guard enabled:
    ```
 4. Restart the container:
    ```bash
-   docker-compose down
-   docker-compose up -d
+   docker compose down
+   docker compose up -d
    ```
 
 ## Configuration
@@ -152,19 +153,19 @@ dayz-manager start             # Start the server
 
 ```bash
 # Build image
-docker-compose build
+docker compose build
 
 # Start server
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop server
-docker-compose down
+docker compose down
 
 # Restart server
-docker-compose restart
+docker compose restart
 
 # Enter container shell
 docker exec -it dayz-server bash
@@ -255,7 +256,7 @@ If you see "Steam Guard code required":
 
 ### Server Not Starting
 
-1. Check logs: `docker-compose logs -f`
+1. Check logs: `docker compose logs -f`
 2. Validate config: `docker exec -it dayz-server dayz-manager validate`
 3. Ensure all required mods are installed
 
