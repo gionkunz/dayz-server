@@ -1,0 +1,91 @@
+# DayZ Server Configuration
+# Copy this file to dayz-config.yaml and customize
+
+# Steam credentials
+# Leave empty for anonymous login (works for server download, but NOT for mod downloads)
+# For mod downloads, you need a Steam account that owns DayZ
+steam:
+  username: ""
+  password: ""
+  # Steam Guard code - add this after receiving code via email on first login
+  steamGuardCode: ""
+
+# Server settings
+server:
+  name: "My DayZ Server"
+  # Server password (empty for no password)
+  password: ""
+  # Admin/RCON password
+  adminPassword: "changeme123"
+  # Maximum players
+  maxPlayers: 60
+  # Server port (default 2302)
+  port: 2302
+  # Steam query port
+  steamQueryPort: 27016
+  # Enable BattlEye anti-cheat
+  battleEye: true
+  # Verify signatures (0=disabled, 1=low, 2=high)
+  verifySignatures: 2
+  # Persistence enabled
+  persistent: true
+  # Time acceleration (1 = real time)
+  timeAcceleration: 4
+  # Night time acceleration
+  nightTimeAcceleration: 8
+  # Disable third person view
+  disableThirdPerson: false
+  # Disable crosshair
+  disableCrosshair: false
+  # Message of the day
+  motd:
+    - "Welcome to My DayZ Server!"
+    - "Have fun and play fair."
+  # Mission/map name
+  mission: "dayzOffline.chernarusplus"
+
+# Mods configuration
+# Workshop IDs can be found on the Steam Workshop page URL
+mods:
+  # CF (Community Framework) - Required by many mods
+  - workshopId: "1559212036"
+    name: "@CF"
+    clientRequired: true
+    serverSide: false
+
+  # VPP Admin Tools - Server administration
+  - workshopId: "1708571776"
+    name: "@VPPAdminTools"
+    clientRequired: true
+    serverSide: false
+
+  # Add more mods here...
+  # - workshopId: "XXXXXXXXXX"
+  #   name: "@ModName"
+  #   clientRequired: true
+  #   serverSide: false
+
+# Mod-specific configurations
+modConfigs:
+  # VPP Admin Tools configuration
+  # See: https://github.com/VanillaPlusPlus/VPP-Admin-Tools/wiki/Installation-&-Configuration
+  vppAdminTools:
+    # Super admin Steam64 IDs
+    # Find your ID at: https://steamid.io/
+    superAdmins:
+      - "76561198000000000"  # Replace with your actual Steam64 ID
+    # Admin panel password (will be hashed)
+    password: "adminpassword123"
+    # Set to true to disable password requirement
+    disablePassword: false
+    # Discord webhook for notifications (optional)
+    webhooks:
+      discord: ""
+
+# Paths configuration (usually don't need to change)
+paths:
+  steamcmd: "/opt/steamcmd"
+  serverInstall: "/opt/dayz-server"
+  profiles: "/opt/dayz-server/profiles"
+  mods: "/opt/dayz-server/mods"
+

@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+npm-debug.log
+
+# IDE
+.vscode
+.idea
+
+# Documentation
+README.md
+*.md
+
+# Examples
+*.example
+
+# Build artifacts
+dist
+
+# Environment files (will be mounted via volumes)
+.env
+config/*.yaml
+

@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  dayz-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dayz-server
+    restart: unless-stopped
+    
+    # Run as steam user (UID 1000)
+    user: "1000:1000"
+    
+    # Environment variables
+    environment:
+      # Steam credentials (optional - leave empty for anonymous)
+      - STEAM_USERNAME=${STEAM_USERNAME:-}
+      - STEAM_PASSWORD=${STEAM_PASSWORD:-}
+      # Steam Guard code - set this after receiving the code via email
+      - STEAM_GUARD_CODE=${STEAM_GUARD_CODE:-}
+      # Configuration file path
+      - DAYZ_CONFIG=/config/dayz-config.yaml
+    
+    # Port mappings
+    ports:
+      # Game port (UDP)
+      - "2302:2302/udp"
+      # Steam query port (game port + 1)
+      - "2303:2303/udp"
+      # Steam master port (game port + 2)  
+      - "2304:2304/udp"
+      # Steam query port (configurable)
+      - "27016:27016/udp"
+    
+    # Volume mounts
+    volumes:
+      # SteamCMD installation (persisted for caching)
+      - steamcmd-data:/opt/steamcmd
+      # DayZ server files
+      - dayz-server-data:/opt/dayz-server
+      # Configuration files
+      - ./config:/config
+    
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "DayZServer"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+# Named volumes for data persistence
+volumes:
+  steamcmd-data:
+    driver: local
+  dayz-server-data:
+    driver: local
+
