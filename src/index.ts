@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as YAML from 'yaml';
 import chalk from 'chalk';
 
-import { DayZServerConfig, DEFAULT_CONFIG, validateConfig } from './config/schema';
+import { DayZServerConfig, DEFAULT_CONFIG, validateConfig, getSteamCredentials } from './config/schema';
 import { SteamCMDInstaller } from './steamcmd/installer';
 import { ModManager } from './mods/manager';
 import { ServerConfigGenerator } from './server/config-generator';
@@ -30,7 +30,6 @@ function loadConfig(): DayZServerConfig {
   return {
     ...DEFAULT_CONFIG,
     ...config,
-    steam: { ...DEFAULT_CONFIG.steam, ...config.steam },
     server: { ...DEFAULT_CONFIG.server, ...config.server },
     paths: { ...DEFAULT_CONFIG.paths, ...config.paths },
   };
@@ -64,7 +63,7 @@ program
       },
       mods: [
         {
-          workshopId: '1599372433',
+          workshopId: '1559212036',
           name: '@CF',
           clientRequired: true,
           serverSide: false,
@@ -92,7 +91,9 @@ program
     console.log(chalk.green(`✅ Created sample configuration: ${outputPath}`));
     console.log(chalk.cyan('\n📝 Next steps:'));
     console.log('   1. Edit the configuration file with your server settings');
-    console.log('   2. Add your Steam credentials (optional for authenticated downloads)');
+    console.log('   2. Set Steam credentials via environment variables:');
+    console.log(chalk.cyan('      export STEAM_USERNAME=your_username'));
+    console.log(chalk.cyan('      export STEAM_PASSWORD=your_password'));
     console.log('   3. Add your Steam64 ID to the superAdmins list');
     console.log('   4. Run `dayz-manager install` to install the server');
   });
@@ -106,6 +107,7 @@ program
     
     const config = loadConfig();
     const errors = validateConfig(config);
+    const credentials = getSteamCredentials();
     
     if (errors.length > 0) {
       console.log(chalk.red('❌ Configuration validation failed:\n'));
@@ -118,6 +120,7 @@ program
     console.log(chalk.cyan(`   Port: ${config.server.port}`));
     console.log(chalk.cyan(`   Max Players: ${config.server.maxPlayers}`));
     console.log(chalk.cyan(`   Mods: ${config.mods.length}`));
+    console.log(chalk.cyan(`   Steam login: ${credentials.username || 'anonymous'}`));
   });
 
 // Install SteamCMD
@@ -149,6 +152,7 @@ program
   .description('Install or update DayZ server')
   .action(async () => {
     const config = loadConfig();
+    const credentials = getSteamCredentials();
     const installer = new SteamCMDInstaller(config);
     
     console.log(chalk.cyan('🎮 Installing DayZ Server...\n'));
@@ -158,7 +162,7 @@ program
       await installer.installSteamCMD();
     }
     
-    const result = await installer.installServer(config.steam);
+    const result = await installer.installServer(credentials);
     
     if (result.success) {
       console.log(chalk.green(`\n✅ ${result.message}`));
@@ -167,9 +171,8 @@ program
       if (result.steamGuardRequired) {
         console.log(chalk.yellow('\n💡 Steam Guard code required!'));
         console.log(chalk.yellow('   1. Check your email for the Steam Guard code'));
-        console.log(chalk.yellow('   2. Add the code to your configuration:'));
-        console.log(chalk.cyan('      steam:'));
-        console.log(chalk.cyan('        steamGuardCode: "XXXXX"'));
+        console.log(chalk.yellow('   2. Set the environment variable:'));
+        console.log(chalk.cyan('      export STEAM_GUARD_CODE=XXXXX'));
         console.log(chalk.yellow('   3. Run this command again'));
       }
       process.exit(1);
@@ -182,7 +185,8 @@ program
   .description('Install all configured mods')
   .action(async () => {
     const config = loadConfig();
-    const modManager = new ModManager(config);
+    const credentials = getSteamCredentials();
+    const modManager = new ModManager(config, credentials);
     
     console.log(chalk.cyan('📦 Installing mods...\n'));
     
@@ -223,10 +227,12 @@ program
   .description('Full installation: SteamCMD, server, mods, and configuration')
   .action(async () => {
     const config = loadConfig();
+    const credentials = getSteamCredentials();
     
     console.log(chalk.cyan('🚀 Starting full installation...\n'));
     console.log(chalk.cyan(`📋 Server: ${config.server.name}`));
-    console.log(chalk.cyan(`   Mods to install: ${config.mods.length}\n`));
+    console.log(chalk.cyan(`   Mods to install: ${config.mods.length}`));
+    console.log(chalk.cyan(`   Steam login: ${credentials.username || 'anonymous'}\n`));
     
     // Step 1: Install SteamCMD
     const installer = new SteamCMDInstaller(config);
@@ -244,19 +250,20 @@ program
     
     // Step 2: Install server
     console.log(chalk.cyan('\n═══ Step 2/5: Installing DayZ Server ═══\n'));
-    const serverResult = await installer.installServer(config.steam);
+    const serverResult = await installer.installServer(credentials);
     
     if (!serverResult.success) {
       console.log(chalk.red(`❌ ${serverResult.message}`));
       if (serverResult.steamGuardRequired) {
-        console.log(chalk.yellow('\n💡 Steam Guard code required! See instructions above.'));
+        console.log(chalk.yellow('\n💡 Steam Guard code required!'));
+        console.log(chalk.yellow('   Set STEAM_GUARD_CODE environment variable and try again.'));
       }
       process.exit(1);
     }
     
     // Step 3: Install mods
     console.log(chalk.cyan('\n═══ Step 3/5: Installing Mods ═══\n'));
-    const modManager = new ModManager(config);
+    const modManager = new ModManager(config, credentials);
     await modManager.installAllMods();
     
     // Step 4: Generate server config
@@ -305,4 +312,3 @@ program
   });
 
 program.parse();
-

@@ -2,13 +2,24 @@
  * DayZ Server Configuration Schema
  */
 
+/**
+ * Steam credentials - obtained from environment variables only
+ */
 export interface SteamCredentials {
-  /** Steam username (leave empty for anonymous) */
-  username?: string;
-  /** Steam password */
-  password?: string;
-  /** Steam Guard code (required on first login with credentials) */
-  steamGuardCode?: string;
+  username: string;
+  password: string;
+  steamGuardCode: string;
+}
+
+/**
+ * Get Steam credentials from environment variables
+ */
+export function getSteamCredentials(): SteamCredentials {
+  return {
+    username: process.env.STEAM_USERNAME || '',
+    password: process.env.STEAM_PASSWORD || '',
+    steamGuardCode: process.env.STEAM_GUARD_CODE || '',
+  };
 }
 
 export interface ServerConfig {
@@ -71,8 +82,6 @@ export interface VPPAdminToolsConfig {
 }
 
 export interface DayZServerConfig {
-  /** Steam credentials for downloading server and mods */
-  steam: SteamCredentials;
   /** Server configuration */
   server: ServerConfig;
   /** List of mods to install */
@@ -96,11 +105,6 @@ export interface DayZServerConfig {
 }
 
 export const DEFAULT_CONFIG: DayZServerConfig = {
-  steam: {
-    username: '',
-    password: '',
-    steamGuardCode: '',
-  },
   server: {
     name: 'DayZ Server',
     password: '',
@@ -154,4 +158,3 @@ export function validateConfig(config: DayZServerConfig): string[] {
 
   return errors;
 }
-

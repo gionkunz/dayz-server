@@ -11,7 +11,7 @@ import * as path from 'path';
 import * as YAML from 'yaml';
 import chalk from 'chalk';
 
-import { DayZServerConfig, DEFAULT_CONFIG, validateConfig } from './config/schema';
+import { DayZServerConfig, DEFAULT_CONFIG, validateConfig, getSteamCredentials } from './config/schema';
 import { SteamCMDInstaller } from './steamcmd/installer';
 import { ModManager } from './mods/manager';
 import { ServerConfigGenerator } from './server/config-generator';
@@ -55,10 +55,6 @@ To continue, please:
        ${chalk.cyan('STEAM_GUARD_CODE=XXXXX')}
      ${chalk.cyan('docker-compose up -d')}
 
-  Or update your dayz-config.yaml:
-     ${chalk.cyan(`steam:
-       steamGuardCode: "XXXXX"`)}
-
 The container will exit now. Restart after adding the code.
 `);
 }
@@ -79,7 +75,6 @@ function loadConfig(): DayZServerConfig | null {
     return {
       ...DEFAULT_CONFIG,
       ...config,
-      steam: { ...DEFAULT_CONFIG.steam, ...config.steam },
       server: { ...DEFAULT_CONFIG.server, ...config.server },
       paths: { ...DEFAULT_CONFIG.paths, ...config.paths },
     };
@@ -99,27 +94,6 @@ function saveConfig(config: DayZServerConfig): void {
 }
 
 /**
- * Update configuration with environment variables
- */
-function mergeEnvIntoConfig(config: DayZServerConfig): DayZServerConfig {
-  const updated = { ...config };
-  updated.steam = { ...config.steam };
-
-  // Override with environment variables if set
-  if (process.env.STEAM_USERNAME) {
-    updated.steam.username = process.env.STEAM_USERNAME;
-  }
-  if (process.env.STEAM_PASSWORD) {
-    updated.steam.password = process.env.STEAM_PASSWORD;
-  }
-  if (process.env.STEAM_GUARD_CODE) {
-    updated.steam.steamGuardCode = process.env.STEAM_GUARD_CODE;
-  }
-
-  return updated;
-}
-
-/**
  * Check if this is first run (server not installed)
  */
 function isFirstRun(): boolean {
@@ -130,7 +104,7 @@ function isFirstRun(): boolean {
  * Create default configuration
  */
 function createDefaultConfig(): DayZServerConfig {
-  const config: DayZServerConfig = {
+  return {
     ...DEFAULT_CONFIG,
     server: {
       ...DEFAULT_CONFIG.server,
@@ -159,8 +133,6 @@ function createDefaultConfig(): DayZServerConfig {
       },
     },
   };
-
-  return config;
 }
 
 /**
@@ -178,7 +150,9 @@ async function cmdInit(): Promise<void> {
   saveConfig(config);
 
   console.log(chalk.green(`✅ Configuration created at ${CONFIG_FILE}`));
-  console.log(chalk.yellow('Please edit the configuration and restart the container'));
+  console.log(chalk.yellow('\nPlease edit the configuration and set environment variables:'));
+  console.log(chalk.cyan('  STEAM_USERNAME=your_username'));
+  console.log(chalk.cyan('  STEAM_PASSWORD=your_password'));
 }
 
 /**
@@ -195,9 +169,6 @@ async function cmdInstall(): Promise<boolean> {
     return false;
   }
 
-  // Merge environment variables
-  config = mergeEnvIntoConfig(config);
-
   // Validate
   const errors = validateConfig(config);
   if (errors.length > 0) {
@@ -206,9 +177,13 @@ async function cmdInstall(): Promise<boolean> {
     return false;
   }
 
+  // Get Steam credentials from environment
+  const credentials = getSteamCredentials();
+
   console.log(chalk.cyan('🚀 Starting full installation...\n'));
   console.log(chalk.cyan(`📋 Server: ${config.server.name}`));
-  console.log(chalk.cyan(`   Mods to install: ${config.mods.length}\n`));
+  console.log(chalk.cyan(`   Mods to install: ${config.mods.length}`));
+  console.log(chalk.cyan(`   Steam login: ${credentials.username || 'anonymous'}\n`));
 
   const installer = new SteamCMDInstaller(config);
 
@@ -226,7 +201,7 @@ async function cmdInstall(): Promise<boolean> {
 
   // Step 2: Install server
   console.log(chalk.cyan('\n═══ Step 2/5: Installing DayZ Server ═══\n'));
-  const serverResult = await installer.installServer(config.steam);
+  const serverResult = await installer.installServer(credentials);
 
   if (!serverResult.success) {
     console.error(chalk.red(`❌ ${serverResult.message}`));
@@ -238,7 +213,7 @@ async function cmdInstall(): Promise<boolean> {
 
   // Step 3: Install mods
   console.log(chalk.cyan('\n═══ Step 3/5: Installing Mods ═══\n'));
-  const modManager = new ModManager(config);
+  const modManager = new ModManager(config, credentials);
   await modManager.installAllMods();
 
   // Step 4: Generate server config
@@ -284,14 +259,14 @@ async function cmdInstallSteamcmd(): Promise<void> {
  * Install server only
  */
 async function cmdInstallServer(): Promise<void> {
-  let config = loadConfig();
+  const config = loadConfig();
 
   if (!config) {
     console.error(chalk.red(`❌ Configuration file not found: ${CONFIG_FILE}`));
     process.exit(1);
   }
 
-  config = mergeEnvIntoConfig(config);
+  const credentials = getSteamCredentials();
   const installer = new SteamCMDInstaller(config);
 
   if (!installer.isSteamCMDInstalled()) {
@@ -300,7 +275,7 @@ async function cmdInstallServer(): Promise<void> {
   }
 
   console.log(chalk.cyan('🎮 Installing DayZ Server...\n'));
-  const result = await installer.installServer(config.steam);
+  const result = await installer.installServer(credentials);
 
   if (result.success) {
     console.log(chalk.green(`\n✅ ${result.message}`));
@@ -317,15 +292,15 @@ async function cmdInstallServer(): Promise<void> {
  * Install mods only
  */
 async function cmdInstallMods(): Promise<void> {
-  let config = loadConfig();
+  const config = loadConfig();
 
   if (!config) {
     console.error(chalk.red(`❌ Configuration file not found: ${CONFIG_FILE}`));
     process.exit(1);
   }
 
-  config = mergeEnvIntoConfig(config);
-  const modManager = new ModManager(config);
+  const credentials = getSteamCredentials();
+  const modManager = new ModManager(config, credentials);
 
   console.log(chalk.cyan('📦 Installing mods...\n'));
   await modManager.installAllMods();
@@ -357,21 +332,21 @@ async function cmdConfigure(): Promise<void> {
  * Update server and mods
  */
 async function cmdUpdate(): Promise<void> {
-  let config = loadConfig();
+  const config = loadConfig();
 
   if (!config) {
     console.error(chalk.red(`❌ Configuration file not found: ${CONFIG_FILE}`));
     process.exit(1);
   }
 
-  config = mergeEnvIntoConfig(config);
+  const credentials = getSteamCredentials();
 
   console.log(chalk.cyan('🔄 Updating server and mods...\n'));
 
   const installer = new SteamCMDInstaller(config);
-  await installer.installServer(config.steam);
+  await installer.installServer(credentials);
 
-  const modManager = new ModManager(config);
+  const modManager = new ModManager(config, credentials);
   await modManager.installAllMods();
 
   console.log(chalk.green('\n✅ Update complete'));
@@ -398,11 +373,14 @@ async function cmdValidate(): Promise<void> {
     process.exit(1);
   }
 
+  const credentials = getSteamCredentials();
+
   console.log(chalk.green('✅ Configuration is valid'));
   console.log(chalk.cyan(`\n📋 Server: ${config.server.name}`));
   console.log(chalk.cyan(`   Port: ${config.server.port}`));
   console.log(chalk.cyan(`   Max Players: ${config.server.maxPlayers}`));
   console.log(chalk.cyan(`   Mods: ${config.mods.length}`));
+  console.log(chalk.cyan(`   Steam login: ${credentials.username || 'anonymous'}`));
 }
 
 /**
@@ -487,6 +465,12 @@ ${chalk.cyan('Commands:')}
   validate          Validate configuration
   shell             Start interactive bash shell
   help              Show this help message
+
+${chalk.cyan('Environment Variables:')}
+  STEAM_USERNAME    Steam account username (required for mod downloads)
+  STEAM_PASSWORD    Steam account password
+  STEAM_GUARD_CODE  Steam Guard code (from email)
+  DAYZ_CONFIG       Path to configuration file
 `);
 }
 
@@ -589,4 +573,3 @@ async function main(): Promise<void> {
 
 // Run
 main();
-

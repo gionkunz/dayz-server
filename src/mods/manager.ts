@@ -1,15 +1,17 @@
-import { DayZServerConfig, ModConfig } from '../config/schema';
+import { DayZServerConfig, ModConfig, SteamCredentials } from '../config/schema';
 import { SteamCMDInstaller } from '../steamcmd/installer';
 import { ModConfigurator } from './configurators/base';
 import { VPPAdminToolsConfigurator } from './configurators/vpp-admin-tools';
 
 export class ModManager {
   private config: DayZServerConfig;
+  private credentials?: SteamCredentials;
   private installer: SteamCMDInstaller;
   private configurators: Map<string, ModConfigurator>;
 
-  constructor(config: DayZServerConfig) {
+  constructor(config: DayZServerConfig, credentials?: SteamCredentials) {
     this.config = config;
+    this.credentials = credentials;
     this.installer = new SteamCMDInstaller(config);
     this.configurators = new Map();
 
@@ -28,6 +30,10 @@ export class ModManager {
    * Install all mods from configuration
    */
   async installAllMods(): Promise<void> {
+    if (!this.credentials) {
+      throw new Error('Steam credentials required for mod installation');
+    }
+
     console.log('📦 Installing all configured mods...\n');
 
     for (const mod of this.config.mods) {
@@ -41,8 +47,12 @@ export class ModManager {
    * Install a single mod
    */
   async installMod(mod: ModConfig): Promise<void> {
+    if (!this.credentials) {
+      throw new Error('Steam credentials required for mod installation');
+    }
+
     const result = await this.installer.installMod(
-      this.config.steam,
+      this.credentials,
       mod.workshopId,
       mod.name
     );
@@ -53,7 +63,7 @@ export class ModManager {
     } else {
       console.error(`❌ Failed to install ${mod.name}: ${result.message}`);
       if (result.steamGuardRequired) {
-        console.log('💡 Please add your Steam Guard code to the configuration and try again.');
+        console.log('💡 Please set the STEAM_GUARD_CODE environment variable and try again.');
       }
     }
   }
@@ -102,4 +112,3 @@ export class ModManager {
     return Array.from(this.configurators.keys());
   }
 }
-

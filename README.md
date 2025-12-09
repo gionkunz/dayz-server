@@ -29,10 +29,6 @@ cp env.example .env
 Edit `config/dayz-config.yaml` with your server settings:
 
 ```yaml
-steam:
-  username: "your_steam_username"  # Required for mod downloads
-  password: "your_steam_password"
-
 server:
   name: "My DayZ Server"
   adminPassword: "your_admin_password"
@@ -48,6 +44,13 @@ modConfigs:
   vppAdminTools:
     superAdmins:
       - "76561198000000000"  # Your Steam64 ID
+```
+
+Set Steam credentials in your `.env` file:
+
+```bash
+STEAM_USERNAME=your_steam_username
+STEAM_PASSWORD=your_steam_password
 ```
 
 ### 3. Build and Run
@@ -89,15 +92,9 @@ If using a Steam account with Steam Guard enabled:
 
 ### Configuration File
 
-The main configuration file (`config/dayz-config.yaml`) contains all server settings:
+The main configuration file (`config/dayz-config.yaml`) contains server settings and mod configurations.
 
-#### Steam Section
-```yaml
-steam:
-  username: ""        # Leave empty for anonymous
-  password: ""
-  steamGuardCode: ""  # Add after receiving via email
-```
+**Note:** Steam credentials are set via environment variables only (see above).
 
 #### Server Section
 ```yaml

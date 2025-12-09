@@ -1,14 +1,10 @@
 # DayZ Server Configuration
 # Copy this file to dayz-config.yaml and customize
-
-# Steam credentials
-# Leave empty for anonymous login (works for server download, but NOT for mod downloads)
-# For mod downloads, you need a Steam account that owns DayZ
-steam:
-  username: ""
-  password: ""
-  # Steam Guard code - add this after receiving code via email on first login
-  steamGuardCode: ""
+#
+# Steam credentials are set via environment variables:
+#   STEAM_USERNAME - Steam account username (required for mod downloads)
+#   STEAM_PASSWORD - Steam account password
+#   STEAM_GUARD_CODE - Steam Guard code (from email, on first login)
 
 # Server settings
 server:
@@ -88,4 +84,3 @@ paths:
   serverInstall: "/opt/dayz-server"
   profiles: "/opt/dayz-server/profiles"
   mods: "/opt/dayz-server/mods"
-
