@@ -58,6 +58,9 @@ motdInterval = 200;
 
 enableDebugMonitor = 0;
 
+// Steam query port (required for server browser visibility)
+steamQueryPort = ${server.steamQueryPort};
+
 // Mission selection
 class Missions
 {
