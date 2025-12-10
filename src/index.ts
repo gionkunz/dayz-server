@@ -65,13 +65,11 @@ program
         {
           workshopId: '1559212036',
           name: '@CF',
-          clientRequired: true,
           serverSide: false,
         },
         {
           workshopId: '1828439124',
           name: '@VPPAdminTools',
-          clientRequired: true,
           serverSide: false,
         },
       ],

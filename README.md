@@ -37,8 +37,6 @@ server:
 mods:
   - workshopId: "1559212036"
     name: "@CF"
-    clientRequired: true
-    serverSide: false
 
 modConfigs:
   vppAdminTools:
@@ -115,8 +113,6 @@ server:
 mods:
   - workshopId: "1559212036"
     name: "@CF"
-    clientRequired: true
-    serverSide: false
 ```
 
 #### Mod Configurations
@@ -185,14 +181,10 @@ mods:
   # CF (Community Framework) - Required by many mods
   - workshopId: "1559212036"
     name: "@CF"
-    clientRequired: true
-    serverSide: false
 
   # VPP Admin Tools
   - workshopId: "1708571776"
     name: "@VPPAdminTools"
-    clientRequired: true
-    serverSide: false
 ```
 
 ### Supported Mod Configurators

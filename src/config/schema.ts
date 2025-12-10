@@ -60,9 +60,7 @@ export interface ModConfig {
   workshopId: string;
   /** Mod name (folder name, usually starts with @) */
   name: string;
-  /** Whether this mod is required on client side */
-  clientRequired: boolean;
-  /** Whether this mod runs on server side */
+  /** Whether this mod runs on server side only */
   serverSide: boolean;
   /** Mod-specific configuration */
   config?: Record<string, unknown>;

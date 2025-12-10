@@ -115,13 +115,11 @@ function createDefaultConfig(): DayZServerConfig {
       {
         workshopId: '1559212036',
         name: '@CF',
-        clientRequired: true,
         serverSide: false,
       },
       {
         workshopId: '1828439124',
         name: '@VPPAdminTools',
-        clientRequired: true,
         serverSide: false,
       },
     ],
@@ -411,7 +409,30 @@ async function cmdStart(): Promise<void> {
     await cmdConfigure();
   }
 
-  console.log(chalk.green(`🎮 Starting DayZ Server: ${config.server.name}...`));
+  // Display startup information
+  console.log(chalk.green(`\n🎮 Starting DayZ Server: ${config.server.name}`));
+  console.log(chalk.cyan('═══════════════════════════════════════════════════════'));
+  console.log(chalk.cyan(`   Port: ${config.server.port}`));
+  console.log(chalk.cyan(`   Max Players: ${config.server.maxPlayers}`));
+  console.log(chalk.cyan(`   BattlEye: ${config.server.battleEye ? 'Enabled' : 'Disabled'}`));
+  console.log(chalk.cyan(`   Password: ${config.server.password ? '****' : '(none)'}`));
+  console.log(chalk.cyan(`   Mission: ${config.server.mission}`));
+  
+  if (config.mods.length > 0) {
+    console.log(chalk.cyan(`   Mods: ${config.mods.map(m => m.name).join(', ')}`));
+  } else {
+    console.log(chalk.cyan(`   Mods: (none)`));
+  }
+  
+  // Show startup command
+  const startScriptContent = fs.readFileSync(startScript, 'utf-8');
+  const cmdMatch = startScriptContent.match(/\.\/DayZServer[\s\S]*?-freezecheck/);
+  if (cmdMatch) {
+    console.log(chalk.cyan('\n   Startup command:'));
+    const cmdLines = cmdMatch[0].split('\\\n').map(l => l.trim()).filter(l => l);
+    cmdLines.forEach(line => console.log(chalk.gray(`     ${line}`)));
+  }
+  console.log(chalk.cyan('═══════════════════════════════════════════════════════\n'));
 
   // Spawn the server process
   serverProcess = spawn('bash', [startScript], {

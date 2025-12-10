@@ -30,7 +30,7 @@ hostname = "${server.name}";
 maxPlayers = ${server.maxPlayers};
 
 verifySignatures = ${server.verifySignatures};
-forceSameBuild = 1;
+forceSameBuild = 0;
 
 disableVoN = 0;
 vonCodecQuality = 20;
@@ -57,8 +57,6 @@ motd[] = {${this.formatMotd(server.motd)}};
 motdInterval = 200;
 
 enableDebugMonitor = 0;
-
-steamQueryPort = ${server.steamQueryPort};
 
 // Mission selection
 class Missions
@@ -89,17 +87,17 @@ vppDisablePassword = 1;
    */
   generateStartupScript(): string {
     const server = this.config.server;
-    const clientMods = this.config.mods.filter(m => !m.serverSide).map(m => m.name);
+    const clientMods = this.config.mods.map(m => m.name);
     const serverMods = this.config.mods.filter(m => m.serverSide).map(m => m.name);
 
     let modParam = '';
     if (clientMods.length > 0) {
-      modParam = `-mod="${clientMods.join(';')}"`;
+      modParam = `"-mod=${clientMods.join(';')}"`;
     }
 
     let serverModParam = '';
     if (serverMods.length > 0) {
-      serverModParam = `-serverMod="${serverMods.join(';')}"`;
+      serverModParam = `"-serverMod=${serverMods.join(';')}"`;
     }
 
     return `#!/bin/bash

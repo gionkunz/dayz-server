@@ -6,6 +6,9 @@ services:
     container_name: dayz-server
     restart: unless-stopped
     
+    # Use host networking - bypasses Docker NAT for better game server compatibility
+    network_mode: host
+    
     # Run as steam user (UID 1000)
     user: "1000:1000"
     
@@ -18,17 +21,6 @@ services:
       - STEAM_GUARD_CODE=${STEAM_GUARD_CODE:-}
       # Configuration file path
       - DAYZ_CONFIG=/config/dayz-config.yaml
-    
-    # Port mappings
-    ports:
-      # Game port (UDP)
-      - "2302:2302/udp"
-      # Steam query port (game port + 1)
-      - "2303:2303/udp"
-      # Steam master port (game port + 2)  
-      - "2304:2304/udp"
-      # Steam query port (configurable)
-      - "27016:27016/udp"
     
     # Volume mounts
     volumes:

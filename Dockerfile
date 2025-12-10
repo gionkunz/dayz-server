@@ -19,6 +19,7 @@ RUN dpkg --add-architecture i386 && \
         locales \
         nodejs \
         npm \
+        procps \
         && \
     # Clean up
     apt-get clean && \
@@ -59,8 +60,7 @@ VOLUME ["/opt/steamcmd", "/opt/dayz-server", "/config"]
 # 2302 - Game port
 # 2303 - Steam query (game port + 1)
 # 2304 - Steam master (game port + 2)
-# 27016 - Steam query port (configurable)
-EXPOSE 2302/udp 2303/udp 2304/udp 27016/udp
+EXPOSE 2302/udp 2303/udp 2304/udp
 
 # Switch to steam user
 USER steam

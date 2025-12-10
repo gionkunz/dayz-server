@@ -158,7 +158,9 @@ export class SteamCMDInstaller {
 
     try {
       const loginCmd = this.buildLoginCommand(credentials);
-      const workshopPath = path.join(this.steamcmdPath, 'steamapps/workshop/content', DAYZ_APP_ID);
+      // SteamCMD downloads workshop items to user's Steam directory, not steamcmd dir
+      const steamUserDir = process.env.HOME || '/home/steam';
+      const workshopPath = path.join(steamUserDir, 'Steam/steamapps/workshop/content', DAYZ_APP_ID);
       
       const command = [
         `${this.steamcmdPath}/steamcmd.sh`,
@@ -213,21 +215,57 @@ export class SteamCMDInstaller {
    */
   copyModKeys(modName: string): void {
     const modPath = path.join(this.serverPath, modName);
-    const keysSource = path.join(modPath, 'keys');
     const keysDest = path.join(this.serverPath, 'keys');
 
-    if (!fs.existsSync(keysSource)) {
-      // Try alternate path
-      const altKeysSource = path.join(modPath, 'Keys');
-      if (fs.existsSync(altKeysSource)) {
-        this.copyKeysFromDir(altKeysSource, keysDest);
+    // Try common key folder names
+    const possibleKeysFolders = ['keys', 'Keys', 'Key', 'key'];
+    
+    for (const folderName of possibleKeysFolders) {
+      const keysSource = path.join(modPath, folderName);
+      if (fs.existsSync(keysSource)) {
+        this.copyKeysFromDir(keysSource, keysDest);
         return;
       }
-      console.log(`⚠️ No keys folder found for ${modName}`);
-      return;
     }
 
-    this.copyKeysFromDir(keysSource, keysDest);
+    // If no keys folder found, search recursively for .bikey files
+    if (fs.existsSync(modPath)) {
+      const bikeyFiles = this.findBikeyFiles(modPath);
+      if (bikeyFiles.length > 0) {
+        fs.mkdirSync(keysDest, { recursive: true });
+        for (const bikeyFile of bikeyFiles) {
+          const destFile = path.join(keysDest, path.basename(bikeyFile));
+          fs.copyFileSync(bikeyFile, destFile);
+          console.log(`🔑 Copied key: ${path.basename(bikeyFile)}`);
+        }
+        return;
+      }
+    }
+
+    console.log(`⚠️ No keys found for ${modName}`);
+  }
+
+  /**
+   * Recursively find .bikey files in a directory
+   */
+  private findBikeyFiles(dir: string): string[] {
+    const results: string[] = [];
+    
+    try {
+      const items = fs.readdirSync(dir, { withFileTypes: true });
+      for (const item of items) {
+        const fullPath = path.join(dir, item.name);
+        if (item.isDirectory()) {
+          results.push(...this.findBikeyFiles(fullPath));
+        } else if (item.name.endsWith('.bikey')) {
+          results.push(fullPath);
+        }
+      }
+    } catch {
+      // Ignore permission errors
+    }
+    
+    return results;
   }
 
   private copyKeysFromDir(source: string, dest: string): void {

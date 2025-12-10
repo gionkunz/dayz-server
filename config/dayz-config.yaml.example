@@ -46,20 +46,14 @@ mods:
   # CF (Community Framework) - Required by many mods
   - workshopId: "1559212036"
     name: "@CF"
-    clientRequired: true
-    serverSide: false
 
   # VPP Admin Tools - Server administration
   - workshopId: "1828439124"
     name: "@VPPAdminTools"
-    clientRequired: true
-    serverSide: false
 
   # Add more mods here...
   # - workshopId: "XXXXXXXXXX"
   #   name: "@ModName"
-  #   clientRequired: true
-  #   serverSide: false
 
 # Mod-specific configurations
 modConfigs:
