@@ -95,6 +95,147 @@ export class SteamCMDInstaller {
   }
 
   /**
+   * Install server AND all mods in a single SteamCMD session
+   * This avoids multiple Steam Guard prompts
+   */
+  async installServerAndMods(credentials: SteamCredentials, mods: { workshopId: string; name: string }[]): Promise<InstallResult> {
+    console.log('🎮 Installing DayZ Server and mods in single session...');
+    console.log(`   Steam login: ${credentials.username || 'anonymous'}`);
+    console.log(`   Mods to install: ${mods.length}`);
+
+    if (!this.isSteamCMDInstalled()) {
+      return { success: false, message: 'SteamCMD is not installed. Run install-steamcmd first.' };
+    }
+
+    try {
+      fs.mkdirSync(this.serverPath, { recursive: true });
+
+      const loginCmd = this.buildLoginCommand(credentials);
+      
+      // Build command with server install + all mod downloads
+      const commandParts = [
+        `${this.steamcmdPath}/steamcmd.sh`,
+        loginCmd,
+        `+force_install_dir ${this.serverPath}`,
+        `+app_update ${DAYZ_SERVER_APP_ID} validate`,
+      ];
+
+      // Add all mod downloads to the same session
+      for (const mod of mods) {
+        commandParts.push(`+workshop_download_item ${DAYZ_APP_ID} ${mod.workshopId}`);
+      }
+
+      commandParts.push('+quit');
+
+      const command = commandParts.join(' ');
+
+      return new Promise((resolve) => {
+        const proc = spawn('bash', ['-c', command], {
+          stdio: 'inherit',
+        });
+
+        proc.on('close', (code) => {
+          if (code === 0) {
+            // Create symlinks and copy keys for all mods
+            // Workshop downloads go to force_install_dir/steamapps/workshop/content
+            const workshopPath = path.join(this.serverPath, 'steamapps/workshop/content', DAYZ_APP_ID);
+
+            for (const mod of mods) {
+              const modSource = path.join(workshopPath, mod.workshopId);
+              const modDest = path.join(this.serverPath, mod.name);
+
+              if (fs.existsSync(modSource)) {
+                if (fs.existsSync(modDest)) {
+                  fs.rmSync(modDest, { recursive: true });
+                }
+                fs.symlinkSync(modSource, modDest, 'dir');
+                console.log(`✅ Mod ${mod.name} linked`);
+                this.copyModKeys(mod.name);
+              } else {
+                console.log(`⚠️ Mod ${mod.name} not found at ${modSource}`);
+              }
+            }
+
+            resolve({ success: true, message: 'Server and mods installed successfully' });
+          } else if (code === 5) {
+            resolve({
+              success: false,
+              message: 'Steam Guard code required. Please check your email and update config with the code.',
+              steamGuardRequired: true,
+            });
+          } else {
+            resolve({ success: false, message: `Installation failed with exit code ${code}` });
+          }
+        });
+      });
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to install: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
+    }
+  }
+
+  /**
+   * Install only mods in a single SteamCMD session (no server update)
+   */
+  async installModsOnly(credentials: SteamCredentials, mods: { workshopId: string; name: string }[]): Promise<InstallResult> {
+    console.log('📦 Installing mods in single session...');
+    console.log(`   Steam login: ${credentials.username || 'anonymous'}`);
+    console.log(`   Mods to install: ${mods.length}`);
+
+    if (!this.isSteamCMDInstalled()) {
+      return { success: false, message: 'SteamCMD is not installed. Run install-steamcmd first.' };
+    }
+
+    const loginCmd = this.buildLoginCommand(credentials);
+    const commandParts = [
+      `${this.steamcmdPath}/steamcmd.sh`,
+      loginCmd,
+      `+force_install_dir ${this.serverPath}`,
+    ];
+
+    for (const mod of mods) {
+      commandParts.push(`+workshop_download_item ${DAYZ_APP_ID} ${mod.workshopId}`);
+    }
+    commandParts.push('+quit');
+
+    const command = commandParts.join(' ');
+
+    return new Promise((resolve) => {
+      const proc = spawn('bash', ['-c', command], { stdio: 'inherit' });
+
+      proc.on('close', (code) => {
+        if (code === 0) {
+          // Workshop downloads go to force_install_dir/steamapps/workshop/content
+          const workshopPath = path.join(this.serverPath, 'steamapps/workshop/content', DAYZ_APP_ID);
+
+          for (const mod of mods) {
+            const modSource = path.join(workshopPath, mod.workshopId);
+            const modDest = path.join(this.serverPath, mod.name);
+
+            if (fs.existsSync(modSource)) {
+              if (fs.existsSync(modDest)) {
+                fs.rmSync(modDest, { recursive: true });
+              }
+              fs.symlinkSync(modSource, modDest, 'dir');
+              console.log(`✅ Mod ${mod.name} linked`);
+              this.copyModKeys(mod.name);
+            } else {
+              console.log(`⚠️ Mod ${mod.name} not found at ${modSource}`);
+            }
+          }
+          resolve({ success: true, message: 'All mods installed successfully' });
+        } else if (code === 5) {
+          resolve({ success: false, message: 'Steam Guard code required.', steamGuardRequired: true });
+        } else {
+          resolve({ success: false, message: `Installation failed with exit code ${code}` });
+        }
+      });
+    });
+  }
+
+  /**
    * Install or update DayZ server
    */
   async installServer(credentials: SteamCredentials): Promise<InstallResult> {
@@ -158,13 +299,13 @@ export class SteamCMDInstaller {
 
     try {
       const loginCmd = this.buildLoginCommand(credentials);
-      // SteamCMD downloads workshop items to user's Steam directory, not steamcmd dir
-      const steamUserDir = process.env.HOME || '/home/steam';
-      const workshopPath = path.join(steamUserDir, 'Steam/steamapps/workshop/content', DAYZ_APP_ID);
+      // Workshop downloads go to force_install_dir/steamapps/workshop/content
+      const workshopPath = path.join(this.serverPath, 'steamapps/workshop/content', DAYZ_APP_ID);
       
       const command = [
         `${this.steamcmdPath}/steamcmd.sh`,
         loginCmd,
+        `+force_install_dir ${this.serverPath}`,
         `+workshop_download_item ${DAYZ_APP_ID} ${workshopId}`,
         '+quit',
       ].join(' ');

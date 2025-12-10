@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as crypto from 'crypto';
 import { ModConfigurator } from './base';
 import { VPPAdminToolsConfig } from '../../config/schema';
 
@@ -46,21 +45,8 @@ export class VPPAdminToolsConfigurator extends ModConfigurator {
   private configureSuperAdmins(basePath: string, config: VPPAdminToolsConfig): void {
     const superAdminsFile = path.join(basePath, 'SuperAdmins.txt');
     
-    let content = `// VPP Admin Tools - Super Admins Configuration
-// Add Steam64 IDs of super admins (one per line)
-// Super admins have access to ALL permissions
-// 
-// Example:
-// 76561198420222029
-//
-// Find your Steam64 ID at: https://steamid.io/
-//
-
-`;
-
-    for (const adminId of config.superAdmins || []) {
-      content += `${adminId}\n`;
-    }
+    // Clean format - just Steam64 IDs, one per line
+    const content = (config.superAdmins || []).join('\n') + '\n';
 
     this.writeFile(superAdminsFile, content);
   }
@@ -70,16 +56,7 @@ export class VPPAdminToolsConfigurator extends ModConfigurator {
 
     if (config.disablePassword) {
       // Write empty credentials file
-      const content = `// Password authentication is disabled via serverDZ.cfg
-// Set vppDisablePassword = 1; in serverDZ.cfg
-//
-// To enable password protection:
-// 1. Remove vppDisablePassword from serverDZ.cfg
-// 2. Add your hashed password below
-//
-// Password hash format: sha256(password)
-`;
-      this.writeFile(credentialsFile, content);
+      this.writeFile(credentialsFile, '');
       return;
     }
 
@@ -88,25 +65,8 @@ export class VPPAdminToolsConfigurator extends ModConfigurator {
       return;
     }
 
-    // Hash the password using SHA256 (as per VPP documentation)
-    const hashedPassword = this.hashPassword(config.password);
-
-    const content = `// VPP Admin Tools - Credentials Configuration
-// DO NOT share this file!
-// The password below is hashed using SHA256
-//
-// To change the password:
-// 1. Update the password in your dayz-config.yaml
-// 2. Run: dayz-manager configure-mods
-//
-${hashedPassword}
-`;
-
-    this.writeFile(credentialsFile, content);
-  }
-
-  private hashPassword(password: string): string {
-    return crypto.createHash('sha256').update(password).digest('hex');
+    // Write plaintext password - VPP will encrypt it on first startup
+    this.writeFile(credentialsFile, config.password + '\n');
   }
 
   private updateServerConfig(config: VPPAdminToolsConfig): void {

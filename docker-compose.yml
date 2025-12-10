@@ -28,6 +28,8 @@ services:
       - steamcmd-data:/opt/steamcmd
       # DayZ server files
       - dayz-server-data:/opt/dayz-server
+      # Steam user directory (for workshop downloads)
+      - steam-data:/home/steam/Steam
       # Configuration files
       - ./config:/config
     
@@ -59,5 +61,7 @@ volumes:
   steamcmd-data:
     driver: local
   dayz-server-data:
+    driver: local
+  steam-data:
     driver: local
 

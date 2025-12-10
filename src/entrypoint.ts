@@ -187,7 +187,7 @@ async function cmdInstall(): Promise<boolean> {
 
   // Step 1: Install SteamCMD
   if (!installer.isSteamCMDInstalled()) {
-    console.log(chalk.cyan('\n═══ Step 1/5: Installing SteamCMD ═══\n'));
+    console.log(chalk.cyan('\n═══ Step 1/4: Installing SteamCMD ═══\n'));
     const steamResult = await installer.installSteamCMD();
     if (!steamResult.success) {
       console.error(chalk.red(`❌ ${steamResult.message}`));
@@ -197,9 +197,10 @@ async function cmdInstall(): Promise<boolean> {
     console.log(chalk.green('✅ SteamCMD already installed'));
   }
 
-  // Step 2: Install server
-  console.log(chalk.cyan('\n═══ Step 2/5: Installing DayZ Server ═══\n'));
-  const serverResult = await installer.installServer(credentials);
+  // Step 2: Install server AND mods in single session (avoids multiple Steam Guard prompts)
+  console.log(chalk.cyan('\n═══ Step 2/4: Installing DayZ Server + Mods ═══\n'));
+  const modsToInstall = config.mods.map(mod => ({ workshopId: mod.workshopId, name: mod.name }));
+  const serverResult = await installer.installServerAndMods(credentials, modsToInstall);
 
   if (!serverResult.success) {
     console.error(chalk.red(`❌ ${serverResult.message}`));
@@ -209,18 +210,14 @@ async function cmdInstall(): Promise<boolean> {
     return false;
   }
 
-  // Step 3: Install mods
-  console.log(chalk.cyan('\n═══ Step 3/5: Installing Mods ═══\n'));
-  const modManager = new ModManager(config, credentials);
-  await modManager.installAllMods();
-
-  // Step 4: Generate server config
-  console.log(chalk.cyan('\n═══ Step 4/5: Generating Server Config ═══\n'));
+  // Step 3: Generate server config
+  console.log(chalk.cyan('\n═══ Step 3/4: Generating Server Config ═══\n'));
   const generator = new ServerConfigGenerator(config);
   generator.writeConfigs();
 
-  // Step 5: Configure mods
-  console.log(chalk.cyan('\n═══ Step 5/5: Configuring Mods ═══\n'));
+  // Step 4: Configure mods
+  console.log(chalk.cyan('\n═══ Step 4/4: Configuring Mods ═══\n'));
+  const modManager = new ModManager(config, credentials);
   modManager.configureAllMods();
 
   console.log(chalk.green('\n════════════════════════════════════════'));
@@ -287,7 +284,7 @@ async function cmdInstallServer(): Promise<void> {
 }
 
 /**
- * Install mods only
+ * Install mods only (uses single SteamCMD session for all mods)
  */
 async function cmdInstallMods(): Promise<void> {
   const config = loadConfig();
@@ -298,10 +295,29 @@ async function cmdInstallMods(): Promise<void> {
   }
 
   const credentials = getSteamCredentials();
-  const modManager = new ModManager(config, credentials);
+  const installer = new SteamCMDInstaller(config);
 
-  console.log(chalk.cyan('📦 Installing mods...\n'));
-  await modManager.installAllMods();
+  if (!installer.isSteamCMDInstalled()) {
+    console.log(chalk.yellow('📦 SteamCMD not found, installing first...\n'));
+    await installer.installSteamCMD();
+  }
+
+  const modsToInstall = config.mods.map(mod => ({ workshopId: mod.workshopId, name: mod.name }));
+  
+  console.log(chalk.cyan('📦 Installing all mods in single session...\n'));
+  
+  // Build command with just mod downloads (no server update)
+  const result = await installer.installModsOnly(credentials, modsToInstall);
+  
+  if (result.success) {
+    console.log(chalk.green(`\n✅ ${result.message}`));
+  } else {
+    console.error(chalk.red(`\n❌ ${result.message}`));
+    if (result.steamGuardRequired) {
+      printSteamGuardInstructions();
+    }
+    process.exit(1);
+  }
 }
 
 /**
