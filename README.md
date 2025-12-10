@@ -11,6 +11,29 @@ A Docker-based DayZ dedicated server with SteamCMD support, mod management, and 
 - 🛠️ **CLI tool** - TypeScript-based management tool
 - 📝 **YAML configuration** - Single configuration file for all settings
 
+## Steam Account Requirements
+
+### Dedicated Server Account (Recommended)
+
+**It is strongly recommended to create a separate Steam account for your DayZ server.** This is important because:
+
+1. **Concurrent usage is blocked** - Steam does not allow multiple simultaneous logins. If your server is running with your personal account, you cannot play DayZ (or any Steam game) at the same time.
+
+2. **Workshop mod downloads require DayZ ownership** - The dedicated server account must own a copy of DayZ to download Workshop mods. The base server can be downloaded anonymously, but mods cannot.
+
+3. **Security** - Keeping server credentials separate from your personal account reduces risk.
+
+4. **Stability** - A dedicated account prevents accidental disruptions from personal account activities.
+
+### Setting Up a Dedicated Account
+
+1. Create a new Steam account at [store.steampowered.com](https://store.steampowered.com/)
+2. Purchase DayZ on the new account (required for mod downloads)
+3. Enable Steam Guard (email verification)
+4. Use these credentials in your `.env` file
+
+> **Note:** If you only need the base game without mods, you can use anonymous login (`+login anonymous`), which doesn't require a separate account.
+
 ## Quick Start
 
 ### 1. Clone and Setup
@@ -183,7 +206,7 @@ mods:
     name: "@CF"
 
   # VPP Admin Tools
-  - workshopId: "1708571776"
+  - workshopId: "1828439124"
     name: "@VPPAdminTools"
 ```
 
@@ -193,7 +216,7 @@ The CLI includes built-in configurators for:
 
 - **VPP Admin Tools** (`@VPPAdminTools`)
   - Automatic SuperAdmins.txt generation
-  - Password hashing for credentials.txt
+  - credentials.txt setup (VPP encrypts password on first boot)
   - serverDZ.cfg integration
 
 To add support for more mods, create a configurator in `src/mods/configurators/`.
